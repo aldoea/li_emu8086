@@ -26,7 +26,7 @@ endm
     msg_ok db "File writting successful" , 0Dh,0Ah, "$"
 	filename db 'squarefile.txt',0
 	filehandler dw 0
-	varhandler  dw ?
+	varhelper  dw 0
 	
 .code
 	START:
@@ -64,63 +64,29 @@ endm
 	  	mov al, bl
 	  	mul bl
 	  	mov squaresize, ax
+	  	
 	  	;------ CREATE FILE ----
 			mov ah, 3ch
 			mov cx, 0
-			mov dx, offset filename
-			mov ah, 3ch
+			mov dx, offset filename			
 			int 21h
 			jc EXEPTION
 			mov filehandler, ax		
 
-			mov di, squaresize
-			mov dl, 10
-			mov si, 0
-			ITERATE:
-			    inc si
-			    mov ax, si
-			    cmp si, di			   
-			    jle TOASCII			  			    	
-			    jne BREAK
-			TOASCII: 			       		        			
-					div dl
-					cmp ah, 0
-					je proc1
-					jne proc2
-					proc1:
-					
-					proc2:
-					add ah, 48
-					push ax
-					mov al, ah
-					mov ah, 0
-					mov varhandler, ax    
-					pop ax
-					cmp al, 0
-			        je ITERATE
-			jmp TOASCII
-							
-			BREAK:
-			;Escritura de archivo
-			; mov ah, 40h
-			; mov cx, 1 ;num de caracteres a grabar
-			; mov bx, filehandler ; mover filehandler	
-			; mov dx, offset testvar
-			; int 21h
-			; FILLSQUARE:			
-			; 	mov dx,offset si
-			; 	mov ah,40h
-			; 	int 21h
-			; 	inc si
-			; 	cmp si, squaresize
-			; 	jl FILLSQUARE
-			
-			Mprint msg_ok
-			;cmp cx,ax
-			;jne EXEPTION ;error salir
+			; write to file:
+			mov ah, 40h
+			mov bx, filehandler
+			mov varhelper, 10
+			mov dx, offset varhelper
+			mov cx, 2
+			int 21h
+
+
 			mov ah, 3eh  ;Cierre de archivo
 			mov bx, filehandler 
-			int 21h		
+			int 21h
+			Mprint msg_ok
+	  	
 	  	;------ HERE GOES THE ALGORITHM OMG!
 	  	;----------------------------------
 	  	jmp END
