@@ -1,6 +1,31 @@
 name "CUADRO MAGICO"
 org 100h
 
+MwriteToFile MACRO number
+		; write to file:
+		mov ah, 40h
+		mov bx, filehandler
+		mov varhelper, number
+		mov dx, offset varhelper
+		mov cx, 2
+		int 21h
+ENDM
+
+MopenFile MACRO
+	mov al, 1 ; WRITE MODE
+	mov dx, offset filename
+	mov ah, 3dh
+	int 21h
+	jc EXEPTION
+	mov filehandler, ax
+ENDM
+
+McloseFile MACRO 
+	mov ah, 3eh  ;Cierre de archivo
+	mov bx, filehandler 
+	int 21h
+ENDM
+
 Mblankline MACRO
 	mov ah,02h 
 	mov dl,0ah ;salto de línea 
@@ -23,7 +48,7 @@ endm
 	msg db "Please type the size of the magic square :) " , 0Dh,0Ah, "$"
 	msg_badinput db "Please type only real numbres starting from 3 :) " , 0Dh,0Ah, "$"
 	msg_fileexption db "AN EEROR OCURS CREATING THE FILE... " , 0Dh,0Ah, "$"
-    msg_ok db "File writting successful" , 0Dh,0Ah, "$"
+  msg_ok db "File writting successful" , 0Dh,0Ah, "$"
 	filename db 'squarefile.txt',0
 	filehandler dw 0
 	varhelper  dw 0
@@ -73,18 +98,9 @@ endm
 			jc EXEPTION
 			mov filehandler, ax		
 
-			; write to file:
-			mov ah, 40h
-			mov bx, filehandler
-			mov varhelper, 10
-			mov dx, offset varhelper
-			mov cx, 2
-			int 21h
+			MwriteToFile 101
+			McloseFile
 
-
-			mov ah, 3eh  ;Cierre de archivo
-			mov bx, filehandler 
-			int 21h
 			Mprint msg_ok
 	  	
 	  	;------ HERE GOES THE ALGORITHM OMG!
