@@ -11,6 +11,20 @@ MwriteToFile MACRO number
 		int 21h
 ENDM
 
+Mseek MACRO index
+	mov ax, index
+	mov bx, 2
+	mul bx
+	mov di, ax
+
+	mov al, 0
+	mov bx, filehandler
+	mov cx, 0
+	mov dx, di
+	mov ah, 42h
+	int 21h
+ENDM
+
 MopenFile MACRO
 	mov al, 1 ; WRITE MODE
 	mov dx, offset filename
@@ -98,7 +112,24 @@ endm
 			jc EXEPTION
 			mov filehandler, ax		
 
-			MwriteToFile 101
+			mov cx, squaresize
+			mov si, 0
+			mov di, squaresize
+			dec di
+			inc si
+			FORI:
+				push cx
+				push di
+				Mseek di
+				pop di
+				MwriteToFile si
+				pop cx
+				inc si
+				dec di
+			LOOP FORI
+			
+
+
 			McloseFile
 
 			Mprint msg_ok
