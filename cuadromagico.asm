@@ -35,7 +35,7 @@ Mcalculate_index_casilla MACRO i, j
 ENDM
 
 MopenFile MACRO
-	mov al, 1 ; WRITE MODE
+	mov al, 2 ; WRITE/READ MODE
 	mov dx, offset filename
 	mov ah, 3dh
 	int 21h
@@ -67,11 +67,21 @@ Mblankline MACRO
 	int 21h
 ENDM
 
-Mprint macro string 
+Mprint MACRO string 
   mov ah,09
   mov dx,OFFSET string
   int 21h
-endm
+ENDM
+
+Mdebugmode MACRO
+	McloseFile
+	Mblankline
+	Mprint msg_debug
+	; WAIT USER
+	mov ah, 0
+	int 16h
+	MopenFile
+ENDM
 
 .data
 	input DB 31 DUP(?),"$"
@@ -81,6 +91,7 @@ endm
 	msg_badinput db "Please type only real numbres starting from 3 :) " , 0Dh,0Ah, "$"
 	msg_fileexption db "AN EEROR OCURS CREATING THE FILE... " , 0Dh,0Ah, "$"
   msg_ok db "File writting successful" , 0Dh,0Ah, "$"
+  msg_debug db "Numero escritom, revisa el archivo" , 0Dh,0Ah, "$"
 	filename db 'squarefile.txt',0
 	filehandler dw 0
 	varhelper  dw 0
@@ -138,23 +149,29 @@ endm
 			jc EXEPTION
 			mov filehandler, ax		
 
+			; Ponerse al principio del archivo    
+			mov bx, filehandler                 
+			mov al, 0       ; al=0 indica ponerse desde el principio
+			mov cx, 0       ; limite inferior del desplazamiento
+			mov dx, 0       ; limite superior del desplazamiento
+			mov ah, 42h     ; funcion seek
+			int 21h  
+
 			mov ax, squaresize
 			mov bx, bytesize			
 			mul bx
 			mov cx, ax
 			mov bx, filehandler
-			xor ax, ax			
 			FILLZEROS:
 				push cx
-				mov dx, zeros
+				mov dx, offset zeros
 				mov cx, 1
 				mov ah, 40h
 				int 21h
 			    pop cx
 			LOOP FILLZEROS
 
-			McloseFile
-			jmp END
+			Mdebugmode
             
 			mov i_index, 0 ; fila
 			mov ax, inputNum
@@ -171,6 +188,7 @@ endm
 			
 	  	;------ HERE GOES THE ALGORITHM OMG!	  	
 			MAINWHILE: ; while(cx < squaresize):
+				Mdebugmode
 				cmp cx, squaresize
 				jnl BREAK
 				mov ax, i_index
