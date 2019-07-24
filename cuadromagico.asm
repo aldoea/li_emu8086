@@ -26,10 +26,10 @@ Mseek MACRO
 ENDM
 
 Mcalculate_index_casilla MACRO i, j
-	mov ax, i_index
+	mov ax, i
 	mov bx, inputNum
 	mul bx
-	mov bx, j_index
+	mov bx, j
 	add ax, bx
 	mov index_casilla, ax
 ENDM
@@ -41,6 +41,15 @@ MopenFile MACRO
 	int 21h
 	jc EXEPTION
 	mov filehandler, ax
+ENDM
+
+MreadFromFile MACRO
+		;Reading file
+		mov bx, filehandler
+		mov cx, bytesize
+		mov ah, 3fh
+		mov dx, offset buffer_reader
+		int 21h
 ENDM
 
 McloseFile MACRO 
@@ -77,10 +86,13 @@ endm
 	varhelper  dw 0
 	i_index  dw ?
 	j_index  dw ?
+	i_temp	dw ?
+	j_temp	dw ?
 	index_casilla dw ?
 	bytesize dw 2
 	contador dw 0
-	
+	buffer_reader dw 0
+	zeros dw 0
 .code
 	START:
 		Mprint msg
@@ -126,63 +138,165 @@ endm
 			jc EXEPTION
 			mov filehandler, ax		
 
+			mov ax, squaresize
+			mov bx, bytesize			
+			mul bx
+			mov cx, ax
+			mov bx, filehandler
+			xor ax, ax			
+			FILLZEROS:
+				push cx
+				mov dx, zeros
+				mov cx, 1
+				mov ah, 40h
+				int 21h
+			    pop cx
+			LOOP FILLZEROS
 
+			McloseFile
+			jmp END
+            
 			mov i_index, 0 ; fila
 			mov ax, inputNum
 			mov bx, 2   
 			xor dx, dx
 			div bx
-			mov j_index, ax  ; columna
-			inc j_index
-			Mcalculate_index_casilla
+			mov j_index, ax  ; columna			
+			Mcalculate_index_casilla i_index, j_index
 			Mseek
 			mov cx, 1 ; Contador
 			mov contador, cx			
 			MwriteToFile cx
 			mov cx, contador			
 			
-			MAINWHILE: ; while(cx >= 0):
+	  	;------ HERE GOES THE ALGORITHM OMG!	  	
+			MAINWHILE: ; while(cx < squaresize):
 				cmp cx, squaresize
-				jge BREAK
+				jnl BREAK
 				mov ax, i_index
 				dec ax
 				cmp ax, 0				
 				jnge E1
-				I1:
-					Mprint msg_ok
-				E1:
+				I1: ; if((i-1)>=0)
+					mov ax, j_index
+					inc ax
+					cmp ax, inputNum
+					jnl I1_E1
+					I1_I1: ; if((j+1)<(CuadroMagico.n))
+						mov ax, i_index
+						dec ax
+						mov i_temp, ax
+						mov ax, j_index
+						inc ax
+						mov j_temp, ax
+						Mcalculate_index_casilla i_temp, j_temp
+						Mseek
+						MreadFromFile
+						mov ax, buffer_reader
+						cmp ax, 0
+						jne I1_I1_E1
+						I1_I1_I1: ;if (readFromFile(indexCasilla) == 0)
+							dec i_index
+							inc j_index
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx,contador
+						jmp MAINWHILE
+						I1_I1_E1: ; else
+							inc i_index
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx, contador
+						jmp MAINWHILE
+					I1_E1: ;else
+						mov ax, i_index
+						dec ax
+						mov i_temp, ax
+						mov j_temp, 0
+						Mcalculate_index_casilla i_temp, j_temp
+						Mseek
+						MreadFromFile
+						mov ax, buffer_reader
+						cmp ax, 0
+						jne I1_E1_E1
+						I1_E1_I1: ; if (readFromFile(indexCasilla) == 0)
+							dec i_index
+							mov j_index, 0
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx, contador
+						jmp MAINWHILE
+						I1_E1_E1: ; else
+							inc i_index
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx, contador
+						jmp MAINWHILE
+				E1: ; else
 					mov ax, j_index
 					inc ax
 					cmp ax, inputNum
 					jnl E1_E1
-					E1_I1:
-						Mprint msg_ok
-					E1_E1:
+					E1_I1: ;if (((j + 1) < (CuadroMagico.n)))
+						mov ax, inputNum
+						dec ax
+						mov i_temp, ax
+						mov ax, j_index
+						inc ax
+						mov j_temp, ax
+						Mcalculate_index_casilla i_temp, j_temp
+						Mseek
+						MreadFromFile
+						mov ax, buffer_reader
+						cmp ax, 0
+						jne E1_I1_E1
+						E1_I1_I1: ;if (readFromFile(indexCasilla) == 0)
+							mov ax, inputNum
+							dec ax
+							mov i_index, ax
+							inc j_index
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx, contador
+						jmp MAINWHILE
+						E1_I1_E1: ; else
+							inc i_index
+							inc contador
+							Mcalculate_index_casilla i_index, j_index
+							Mseek
+							mov cx, contador
+							MwriteToFile cx
+							mov cx, contador
+						jmp MAINWHILE
+					E1_E1: ; else
 						inc i_index
 						inc contador
-						mov cx, contador
-						Mcalculate_index_casilla
+						Mcalculate_index_casilla i_index, j_index
 						Mseek
+						mov cx, contador
 						MwriteToFile cx
 						mov cx, contador
 					jmp MAINWHILE
-
-
-
-				;mov
-				; Mseek di				
-				; MwriteToFile si
-				; pop cx
-				; inc si
-				; dec di
-			;LOOP FORI
+			;----------------------------------
 			BREAK:			
 			McloseFile
 
-			Mprint msg_ok
-	  	
-	  	;------ HERE GOES THE ALGORITHM OMG!
-	  	;----------------------------------
+			Mprint msg_ok	  	
 	  	jmp END
 	  BADINPUT:
 	  	Mblankline
@@ -202,7 +316,3 @@ END:
 	mov  ax,4c00h
   int  21h
 	ret
-
-
-
-
